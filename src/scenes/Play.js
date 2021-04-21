@@ -9,6 +9,8 @@ class Play extends Phaser.Scene {
         this.load.image('finger', './assets/finger.png');
         this.load.audio('theJoke', './assets/Megalovania.mp3');
         this.load.audio('initialNotes', './assets/InitialNotes.mp3');
+        this.load.image('him', './assets/Unknown.png');
+        this.load.spritesheet('notesDestroy', './assets/DoubleNoteDestroy.png', {frameWidth: 64, frameHeight: 64});
     }
 
     create() {
@@ -52,10 +54,19 @@ class Play extends Phaser.Scene {
 
         this.myFinger = new Finger(this, game.config.width/2, game.config.height - (key*2), 'finger').setOrigin(0.5, 0);
 
+        this.him = this.add.sprite(game.config.width/2, game.config.height * 0.3, 'him').setScale(0.5);
+        this.him.alpha = 0;
+
         this.note01 = new Note(this, game.config.width + key* 6 * Math.random(), key, 'notes', 0, 30, 3).setOrigin(0, 0);
         this.note02 = new Note(this, game.config.width + key* 6 * Math.random(), key*2.25, 'notes', 0, 20, 4).setOrigin(0,0);
         this.note03 = new Note(this, game.config.width + key* 6 * Math.random(), key*5.25,'notes', 0, 10, 5).setOrigin(0,0);
         this.note04 = new Note(this, game.config.width + key* 6 * Math.random(), key*7, 'notes', 0, 10, 6).setOrigin(0,0);
+
+        this.anims.create({
+            key: 'break',
+            frames: this.anims.generateFrameNumbers('notesDestroy', { start: 0, end: 14, first: 0}),
+            frameRate: 30
+        });
 
         this.fired = [];
         this.firedCooldown = 0;
@@ -65,6 +76,8 @@ class Play extends Phaser.Scene {
         this.add.rectangle(0, 0, (key/3)*2, game.config.height, 0x000000).setOrigin(0, 0);
         this.add.rectangle(0, game.config.height - (key/3)*2, game.config.width, (key/3)*2, 0x000000).setOrigin(0, 0);
         this.add.rectangle(game.config.width - (key/3)*2, 0, (key/3)*2, game.config.height, 0x000000).setOrigin(0, 0);
+        
+        
 
         keyF = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
         keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
@@ -75,10 +88,11 @@ class Play extends Phaser.Scene {
 
         this.music = this.sound.add('theJoke');
         this.notes = this.sound.add('initialNotes');
-        this.score = 10;
+        this.score = 0;
+        this.scoreInc = 1;
         this.noteDurations = [0.44, 0.96, 1.5, 2.04, 2.56, 3.08, 3.6, 4.12, 4.64, 5.16];
 
-        this.scoreLeft = this.add.text(key, game.config.height - key*3.3, this.score, scoreConfig);
+        this.scoreLeft = this.add.text(key, game.config.height - key*3.75, this.score, scoreConfig);
 
         this.currLoop = false;
         this.queuedTransition = [];
@@ -149,25 +163,25 @@ class Play extends Phaser.Scene {
                     this.incrementScore();
                     this.fired[i] = false;
                     bullet.destroy();
-                    this.note01.reset();
+                    this.noteExplode(this.note01);
                 }
                 if(this.checkCollision(bullet, this.note02)) {
                     this.incrementScore();
                     this.fired[i] = false;
                     bullet.destroy();
-                    this.note02.reset();
+                    this.noteExplode(this.note02);
                 }
                 if(this.checkCollision(bullet, this.note03)) {
                     this.incrementScore();
                     this.fired[i] = false;
                     bullet.destroy();
-                    this.note03.reset();
+                    this.noteExplode(this.note03);
                 }
                 if(this.checkCollision(bullet, this.note04)) {
                     this.incrementScore();
                     this.fired[i] = false;
                     bullet.destroy();
-                    this.note04.reset();
+                    this.noteExplode(this.note04);
                 }
             }
         }
@@ -189,27 +203,34 @@ class Play extends Phaser.Scene {
         if(this.score <= 9){
             this.notes.addMarker({name: "notes" + this.score, start: 0, duration: this.noteDurations[this.score], config: this.musicConfig})
 
-            this.notes.play("notes" + this.score);
-            this.score += 1;
+            if (!this.notes.isPlaying){
+                this.notes.play("notes" + this.score);
+            }
+            
+
+            
             
         } else if (this.score == 10){
             console.log("2nd segment");
             this.notes.addMarker({name: "notes" + this.score, start: 6, duration: 4.5, config: this.musicConfig});
 
-            this.notes.play("notes" + this.score);
-            this.score += 1;
+            if (!this.notes.isPlaying){
+                this.notes.play("notes" + this.score);
+            }
+            this.him.alpha = 0.01;
         } else if (this.score == 11){
             console.log("3rd segment");
             this.notes.addMarker({name: "notes" + this.score, start: 11.2, duration: 3.8, config: this.musicConfig});
 
-            this.notes.play("notes" + this.score);
-            this.score += 1;
+            if (!this.notes.isPlaying){
+                this.notes.play("notes" + this.score);
+            }
         } else if (this.score == 12){
             console.log("4th segment");
             this.notes.addMarker({name: "notes" + this.score, start: 16.5, duration: 4, config: this.musicConfig});
 
+            this.notes.stop();
             this.notes.play("notes" + this.score);
-            this.score += 1;
         } else if (this.score == 13){
             this.music.addMarker({name: "Intro", start: 0, duration: 33.391, config: this.musicConfig});
             this.queuedTransition.push("Intro");
@@ -217,30 +238,55 @@ class Play extends Phaser.Scene {
             this.currLoop = "loop";
             console.log("start audio controller");
             audioController(this, this.music);
-            this.score += 1;
+            this.him.alpha = 0.05;
         } else if (this.score == 20){
             this.music.addMarker({name: "Transition1", start: 33.391, duration: 16.696, config: this.musicConfig});
             this.queuedTransition.push("Transition1");
             this.music.addMarker({name: "loopB", start: 50.087, duration: 16.696, config: this.musicConfig});
             this.queuedTransition.push("loopB");
             this.currLoop = "loopB";
-            this.score += 1;
+            this.him.alpha = 0.15;
         } else if (this.score == 30){
             this.music.addMarker({name: "loopC", start: 83.478, duration: 16.696, config: this.musicConfig});
             this.currLoop = "loopC";
             this.queuedTransition.push("loopC");
-            this.score += 1;
+            this.him.alpha = 0.3;
         } else if (this.score == 40){
             this.currLoop = false;
             this.music.addMarker({name: "Finale", start: 100.174, duration: 58.446, config: this.musicConfig});
             this.queuedTransition.push("Finale");
-            this.score += 1;
-        } else {
-            this.score += 1;
+            this.scoreInc = 5;
+            this.him.alpha = 1;
         }
+        this.score += this.scoreInc;
         this.scoreLeft.text = this.score; 
     }
 
+    gameOver(){
+
+    }
+
+    noteExplode(note) {
+
+        // temporarily hide ship
+        note.alpha = 0;
+        note.moveSpeed = 0;
+        
+
+        let color = Phaser.Display.Color.RandomRGB();
+        // create explosion sprite at ship's position
+        let boom = this.add.sprite(note.x, note.y, 'notesDestroy').setOrigin(0, 0);
+        note.x = game.config.width;
+        let boomColor = Phaser.Display.Color.RGBToString(color.r, color.g, color.b, color.a);
+        boomColor = "0x" + boomColor.slice(1);
+        boom.setTint(boomColor);
+        boom.anims.play('break');             // play explode animation
+        boom.on('animationcomplete', () => {    // callback after anim completes
+          note.reset();                         // reset ship position
+          note.alpha = 1;                       // make ship visible again
+          boom.destroy();                       // remove explosion sprite
+        })
+      }
  }
 
  function audioController(scene, music){
@@ -248,8 +294,13 @@ class Play extends Phaser.Scene {
     console.log(scene.currLoop);
     if (scene.queuedTransition.length > 0){
         console.log("play from queue");
-        music.play(scene.queuedTransition.shift());
-        music.once('complete', function(){ audioController(scene, music) });
+        if ( scene.queuedTransition[0] == "Finale"){
+            music.play(scene.queuedTransition.shift());
+            music.once('complete', function(){ scene.gameOver()});
+        } else{
+            music.play(scene.queuedTransition.shift());
+            music.once('complete', function(){ audioController(scene, music) });
+        }
     } else if (scene.currLoop){
         music.play(scene.currLoop);
         music.once('complete', function(){ audioController(scene, music) });
