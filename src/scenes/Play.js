@@ -36,6 +36,19 @@ class Play extends Phaser.Scene {
             this.add.rectangle(key*3.55 + ((key + (key/30))*i) + extra, game.config.height - (key*3 + key/12), key * 0.55, key * 1.2, 0x000000).setOrigin(0,0)
         }
 
+        let scoreConfig = {
+            fontFamily: 'Courier',
+            fontSize: '28px',
+            backgroundColor: '#F3B141',
+            color: '#843605',
+            align: 'right',
+            padding: {
+              top: 5,
+              bottom: 5,
+            },
+            fixedWidth: 100
+          }
+          
 
         this.myFinger = new Finger(this, game.config.width/2, game.config.height - (key*2), 'finger').setOrigin(0.5, 0);
 
@@ -62,10 +75,13 @@ class Play extends Phaser.Scene {
 
         this.music = this.sound.add('theJoke');
         this.notes = this.sound.add('initialNotes');
-        this.score = 0;
+        this.score = 10;
         this.noteDurations = [0.44, 0.96, 1.5, 2.04, 2.56, 3.08, 3.6, 4.12, 4.64, 5.16];
 
+        this.scoreLeft = this.add.text(key, game.config.height - key*3.3, this.score, scoreConfig);
 
+        this.currLoop = false;
+        this.queuedTransition = [];
 
         this.musicConfig =  {
             mute: false,
@@ -155,11 +171,6 @@ class Play extends Phaser.Scene {
                 }
             }
         }
-
-        if (Phaser.Input.Keyboard.JustDown(keySPACE)){
-            this.incrementScore();
-        }
-
     }
 
     checkCollision(A, B) {
@@ -201,21 +212,46 @@ class Play extends Phaser.Scene {
             this.score += 1;
         } else if (this.score == 13){
             this.music.addMarker({name: "Intro", start: 0, duration: 33.391, config: this.musicConfig});
-            this.music.play("Intro");
+            this.queuedTransition.push("Intro");
             this.music.addMarker({name: "loop", start: 16.696, duration: 16.65, config: this.musicConfig});
-            this.music.once('complete', function(music){audioController(music);});
+            this.currLoop = "loop";
+            console.log("start audio controller");
+            audioController(this, this.music);
+            this.score += 1;
+        } else if (this.score == 20){
+            this.music.addMarker({name: "Transition1", start: 33.391, duration: 16.696, config: this.musicConfig});
+            this.queuedTransition.push("Transition1");
+            this.music.addMarker({name: "loopB", start: 50.087, duration: 16.696, config: this.musicConfig});
+            this.queuedTransition.push("loopB");
+            this.currLoop = "loopB";
+            this.score += 1;
+        } else if (this.score == 30){
+            this.music.addMarker({name: "loopC", start: 83.478, duration: 16.696, config: this.musicConfig});
+            this.currLoop = "loopC";
+            this.queuedTransition.push("loopC");
+            this.score += 1;
+        } else if (this.score == 40){
+            this.currLoop = false;
+            this.music.addMarker({name: "Finale", start: 100.174, duration: 58.446, config: this.musicConfig});
+            this.queuedTransition.push("Finale");
             this.score += 1;
         } else {
             this.score += 1;
         }
-        
-        
+        this.scoreLeft.text = this.score; 
     }
+
  }
 
-
-
-function audioController(music){
-    music.play("loop");
-    music.once('complete', function(music){audioController(music);});
+ function audioController(scene, music){
+    console.log(scene.queuedTransition);
+    console.log(scene.currLoop);
+    if (scene.queuedTransition.length > 0){
+        console.log("play from queue");
+        music.play(scene.queuedTransition.shift());
+        music.once('complete', function(){ audioController(scene, music) });
+    } else if (scene.currLoop){
+        music.play(scene.currLoop);
+        music.once('complete', function(){ audioController(scene, music) });
+    }
 }
