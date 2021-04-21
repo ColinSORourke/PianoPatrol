@@ -16,6 +16,8 @@ class Play extends Phaser.Scene {
     create() {
         // Set Background Color
         this.cameras.main.setBackgroundColor(0xFFFFFF);
+        this.gameOver = false;
+        this.inFinale = false;
 
         this.add.image((key/3)*2,(key/3)*2, 'sheet').setOrigin(0,0);
 
@@ -38,12 +40,12 @@ class Play extends Phaser.Scene {
             this.add.rectangle(key*3.55 + ((key + (key/30))*i) + extra, game.config.height - (key*3 + key/12), key * 0.55, key * 1.2, 0x000000).setOrigin(0,0)
         }
 
-        let scoreConfig = {
+        this.scoreConfig = {
             fontFamily: 'Courier',
             fontSize: '28px',
             backgroundColor: '#F3B141',
             color: '#843605',
-            align: 'right',
+            align: 'center',
             padding: {
               top: 5,
               bottom: 5,
@@ -54,8 +56,11 @@ class Play extends Phaser.Scene {
 
         this.myFinger = new Finger(this, game.config.width/2, game.config.height - (key*2), 'finger').setOrigin(0.5, 0);
 
-        this.him = this.add.sprite(game.config.width/2, game.config.height * 0.3, 'him').setScale(0.5);
+        this.him = this.add.sprite(game.config.width * 0.45, game.config.height * 0.225, 'him').setScale(0.5);
+        this.him.setOrigin(0,0);
         this.him.alpha = 0;
+        this.himSpeed = 3;
+        this.himWave = 1;
 
         this.note01 = new Note(this, game.config.width + key* 6 * Math.random(), key, 'notes', 0, 30, 3).setOrigin(0, 0);
         this.note02 = new Note(this, game.config.width + key* 6 * Math.random(), key*2.25, 'notes', 0, 20, 4).setOrigin(0,0);
@@ -92,7 +97,7 @@ class Play extends Phaser.Scene {
         this.scoreInc = 1;
         this.noteDurations = [0.44, 0.96, 1.5, 2.04, 2.56, 3.08, 3.6, 4.12, 4.64, 5.16];
 
-        this.scoreLeft = this.add.text(key, game.config.height - key*3.75, this.score, scoreConfig);
+        this.scoreLeft = this.add.text(key, game.config.height - key*3, this.score, this.scoreConfig);
 
         this.currLoop = false;
         this.queuedTransition = [];
@@ -106,82 +111,126 @@ class Play extends Phaser.Scene {
             loop: false,
             delay: 0
         };
+
+        this.time.delayedCall(5000, () => {
+            this.gameEnd();
+        });
     }
 
     update(time, delta) {
-        this.myFinger.update();
-        this.note01.update();
-        this.note02.update();
-        this.note03.update();
-        this.note04.update();
 
-        if (this.firedCooldown > 0){
-            this.firedCooldown -= delta;
+        if(this.gameOver&& Phaser.Input.Keyboard.JustDown(keyR)) {
+            this.scene.restart();   
         }
 
-        if (Phaser.Input.Keyboard.JustDown(keyF)){
-            for (var i = 0; i<= 9; i++){
-                let myKey = this.keys["key"+i];
-                if(this.checkCollision(this.myFinger, myKey)) {
+        if(this.gameOver&& Phaser.Input.Keyboard.JustDown(keyF)) {
+            this.scene.start("menuScene"); 
+        }
 
-                    myKey.setFillStyle(0xDDDDDD, 1);
-                    myKey.height += 2;
+        if (!this.gameOver){
+            this.myFinger.update();
+            this.note01.update();
+            this.note02.update();
+            this.note03.update();
+            this.note04.update();
 
-                    if (this.firedCooldown <= 0){
-                        this.fired.push(this.add.rectangle(myKey.x + myKey.width/2, myKey.y, 15, 30,  0xCCA43B).setOrigin(0.5, 0));
-                        this.firedCooldown = 250;
-                    }
-                    
-                    if (this.fired.length > 3){
-                        let bullet = this.fired[0];
-                        if (bullet){
-                            bullet.destroy();
+            if (this.inFinale){
+                this.him.x += this.himSpeed;
+                this.him.y += this.himWave;
+                if (this.him.x < key*2.8 || this.him.x > game.config.width - key*2.8){
+                    this.himSpeed *= -1;
+                }
+                if (this.him.y < game.config.height * 0.175 || this.him.y > game.config.height * 0.275){
+                    this.himWave *= -1;
+                }
+            }  
+
+            if (this.firedCooldown > 0){
+                this.firedCooldown -= delta;
+            }
+
+            if (Phaser.Input.Keyboard.JustDown(keyF)){
+                for (var i = 0; i<= 9; i++){
+                    let myKey = this.keys["key"+i];
+                    if(this.checkCollision(this.myFinger, myKey)) {
+                        if (this.firedCooldown <= 0){
+                            this.fired.push(this.add.rectangle(myKey.x + myKey.width/2, myKey.y, 15, 30,  0xCCA43B).setOrigin(0.5, 0));
+                            this.firedCooldown = 500;
+                            myKey.setFillStyle(0xDDDDDD, 1);
+                            myKey.y += 15;
+                            this.myFinger.y -= 10;
+                            this.time.delayedCall(250, () => {
+                                myKey.y = game.config.height - (key*3 + key/12);
+                                myKey.setFillStyle(0xFFFFFF, 1);
+                            });
+                            this.time.delayedCall(250, () => {
+                                this.myFinger.y = game.config.height - (key*2);
+                            });
                         }
-                        this.fired.shift();
+                        
+                        if (this.fired.length > 2){
+                            let bullet = this.fired[0];
+                            if (bullet){
+                                bullet.destroy();
+                            }
+                            this.fired.shift();
+                        }
+                        
+                        break;
                     }
-                    
+                }
+            }
+
+            for (var i = 0; i <= this.fired.length; i++){
+                if (i == 0 && this.fired[i] == false){
+                    console.log("removed a bullet");
+                    this.fired.shift();
+                    i -= 1;
                     break;
                 }
-            }
-        }
-
-        for (var i = 0; i <= this.fired.length; i++){
-            if (i == 0 && this.fired[i] == false){
-                console.log("removed a bullet");
-                this.fired.shift();
-                i -= 1;
-                break;
-            }
-            let bullet = this.fired[i];
-            if (bullet) {
-                bullet.y -= 4;
-                if (bullet.y <= key){
-                    this.fired[i] = false;
-                    bullet.destroy();
-                }
-                if(this.checkCollision(bullet, this.note01)) {
-                    this.incrementScore();
-                    this.fired[i] = false;
-                    bullet.destroy();
-                    this.noteExplode(this.note01);
-                }
-                if(this.checkCollision(bullet, this.note02)) {
-                    this.incrementScore();
-                    this.fired[i] = false;
-                    bullet.destroy();
-                    this.noteExplode(this.note02);
-                }
-                if(this.checkCollision(bullet, this.note03)) {
-                    this.incrementScore();
-                    this.fired[i] = false;
-                    bullet.destroy();
-                    this.noteExplode(this.note03);
-                }
-                if(this.checkCollision(bullet, this.note04)) {
-                    this.incrementScore();
-                    this.fired[i] = false;
-                    bullet.destroy();
-                    this.noteExplode(this.note04);
+                let bullet = this.fired[i];
+                if (bullet) {
+                    bullet.y -= 4;
+                    if (bullet.y <= key){
+                        this.fired[i] = false;
+                        bullet.destroy();
+                    }
+                    if(this.checkCollision(bullet, this.note01)) {
+                        this.incrementScore();
+                        this.fired[i] = false;
+                        bullet.destroy();
+                        this.noteExplode(this.note01);
+                    }
+                    if(this.checkCollision(bullet, this.note02)) {
+                        this.incrementScore();
+                        this.fired[i] = false;
+                        bullet.destroy();
+                        this.noteExplode(this.note02);
+                    }
+                    if(this.checkCollision(bullet, this.note03)) {
+                        this.incrementScore();
+                        this.fired[i] = false;
+                        bullet.destroy();
+                        this.noteExplode(this.note03);
+                    }
+                    if(this.checkCollision(bullet, this.note04)) {
+                        this.incrementScore();
+                        this.fired[i] = false;
+                        bullet.destroy();
+                        this.noteExplode(this.note04);
+                    }
+                    if (this.inFinale){
+                        if (this.checkCollision(bullet, this.him)){ 
+                            this.fired[i] = false;
+                            bullet.destroy();
+                            this.him.setTint("0x9DD1F1")
+                            this.time.delayedCall(50, () => {
+                                this.him.clearTint()
+                            });
+                            this.score += 5;
+                            this.scoreLeft.text = this.score; 
+                        }
+                    }
                 }
             }
         }
@@ -189,9 +238,9 @@ class Play extends Phaser.Scene {
 
     checkCollision(A, B) {
         // simple AABB checking
-        if (A.x < B.x + B.width && 
+        if (A.x < B.x + B.width * B.scale && 
             A.x + A.width/2 > B.x && 
-            A.y < B.y + B.height &&
+            A.y < B.y + B.height * B.scale &&
             A.height + A.y > B.y) {
                 return true;
         } else {
@@ -206,10 +255,6 @@ class Play extends Phaser.Scene {
             if (!this.notes.isPlaying){
                 this.notes.play("notes" + this.score);
             }
-            
-
-            
-            
         } else if (this.score == 10){
             console.log("2nd segment");
             this.notes.addMarker({name: "notes" + this.score, start: 6, duration: 4.5, config: this.musicConfig});
@@ -217,7 +262,7 @@ class Play extends Phaser.Scene {
             if (!this.notes.isPlaying){
                 this.notes.play("notes" + this.score);
             }
-            this.him.alpha = 0.01;
+            this.him.alpha = 0.02;
         } else if (this.score == 11){
             console.log("3rd segment");
             this.notes.addMarker({name: "notes" + this.score, start: 11.2, duration: 3.8, config: this.musicConfig});
@@ -239,31 +284,37 @@ class Play extends Phaser.Scene {
             console.log("start audio controller");
             audioController(this, this.music);
             this.him.alpha = 0.05;
-        } else if (this.score == 20){
+        } else if (this.score == 25){
             this.music.addMarker({name: "Transition1", start: 33.391, duration: 16.696, config: this.musicConfig});
             this.queuedTransition.push("Transition1");
             this.music.addMarker({name: "loopB", start: 50.087, duration: 16.696, config: this.musicConfig});
             this.queuedTransition.push("loopB");
             this.currLoop = "loopB";
             this.him.alpha = 0.15;
-        } else if (this.score == 30){
+        } else if (this.score == 40){
             this.music.addMarker({name: "loopC", start: 83.478, duration: 16.696, config: this.musicConfig});
             this.currLoop = "loopC";
             this.queuedTransition.push("loopC");
             this.him.alpha = 0.3;
-        } else if (this.score == 40){
+        } else if (this.score == 50){
             this.currLoop = false;
             this.music.addMarker({name: "Finale", start: 100.174, duration: 58.446, config: this.musicConfig});
             this.queuedTransition.push("Finale");
-            this.scoreInc = 5;
+            this.inFinale = true;
+            this.scoreInc = 2;
             this.him.alpha = 1;
         }
         this.score += this.scoreInc;
         this.scoreLeft.text = this.score; 
     }
 
-    gameOver(){
-
+    gameEnd(){
+        this.scoreConfig.fixedWidth = 250;
+        this.add.text(game.config.width/2, game.config.height/2, 'GAME OVER', this.scoreConfig).setOrigin(0.5);
+        this.scoreConfig.fixedWidth = 400;
+        this.add.text(game.config.width/2, game.config.height/2 + 64, 'Press (R) to Restart', this.scoreConfig).setOrigin(0.5);
+        this.add.text(game.config.width/2, game.config.height/2 + 96, 'Or (F) for Menu', this.scoreConfig).setOrigin(0.5);
+        this.gameOver = true;
     }
 
     noteExplode(note) {
@@ -272,7 +323,6 @@ class Play extends Phaser.Scene {
         note.alpha = 0;
         note.moveSpeed = 0;
         
-
         let color = Phaser.Display.Color.RandomRGB();
         // create explosion sprite at ship's position
         let boom = this.add.sprite(note.x, note.y, 'notesDestroy').setOrigin(0, 0);
@@ -296,7 +346,7 @@ class Play extends Phaser.Scene {
         console.log("play from queue");
         if ( scene.queuedTransition[0] == "Finale"){
             music.play(scene.queuedTransition.shift());
-            music.once('complete', function(){ scene.gameOver()});
+            music.once('complete', function(){ scene.gameEnd()});
         } else{
             music.play(scene.queuedTransition.shift());
             music.once('complete', function(){ audioController(scene, music) });
