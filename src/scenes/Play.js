@@ -127,7 +127,7 @@ class Play extends Phaser.Scene {
 
         this.musicConfig =  {
             mute: false,
-            volume: 1,
+            volume: 0.75,
             rate: 1,
             detune: 0,
             seek: 0,
@@ -292,7 +292,7 @@ class Play extends Phaser.Scene {
 
             this.notes.stop();
             this.notes.play("notes" + this.score);
-        } else if (this.score == 13){
+        } else if (this.score == 15){
             this.music.addMarker({name: "Intro", start: 0, duration: 33.391, config: this.musicConfig});
             this.queuedTransition.push("Intro");
             this.music.addMarker({name: "loop", start: 16.696, duration: 16.65, config: this.musicConfig});
