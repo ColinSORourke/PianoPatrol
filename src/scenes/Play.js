@@ -6,7 +6,7 @@ class Play extends Phaser.Scene {
     preload() {
         this.load.spritesheet('notes', './assets/DoubleNote.png', {frameWidth: 64, frameHeight: 64});
         this.load.image('sheet', './assets/BackGround.png');
-        this.load.image('finger', './assets/finger.png');
+        this.load.image('finger', './assets/Finger.png');
         this.load.audio('theJoke', './assets/Megalovania.mp3');
         this.load.audio('initialNotes', './assets/InitialNotes.mp3');
         this.load.audio('scale', './assets/Scale.mp3');
@@ -82,10 +82,10 @@ class Play extends Phaser.Scene {
         this.himSpeed = 3;
         this.himWave = 1;
 
-        this.note01 = new Note(this, game.config.width + key* 6 * Math.random(), key, 'notes', 0, 30, 3).setOrigin(0, 0);
-        this.note02 = new Note(this, game.config.width + key* 6 * Math.random(), key*2.25, 'notes', 0, 20, 4).setOrigin(0,0);
-        this.note03 = new Note(this, game.config.width + key* 6 * Math.random(), key*5.25,'notes', 0, 10, 5).setOrigin(0,0);
-        this.note04 = new Note(this, game.config.width + key* 6 * Math.random(), key*7, 'notes', 0, 10, 6).setOrigin(0,0);
+        this.note01 = new Note(this, game.config.width + key* 6 * Math.random(), key, 'notes', 0, 3).setOrigin(0, 0);
+        this.note02 = new Note(this, game.config.width + key* 6 * Math.random(), key*2.25, 'notes', 0, 4).setOrigin(0,0);
+        this.note03 = new Note(this, game.config.width + key* 6 * Math.random(), key*5.25,'notes', 0, 5).setOrigin(0,0);
+        this.note04 = new Note(this, game.config.width + key* 6 * Math.random(), key*7, 'notes', 0, 6).setOrigin(0,0);
 
         this.anims.create({
             key: 'break',

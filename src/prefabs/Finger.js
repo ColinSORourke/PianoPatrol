@@ -5,18 +5,15 @@ class Finger extends Phaser.GameObjects.Sprite {
   
       // add object to existing scene
       scene.add.existing(this);
-      this.isFiring = false;
-      this.moveSpeed = 5;
+      this.moveSpeed = 6;
     }
 
     update() {
-        if(!this.isFiring) {
-            if(keyLEFT.isDown && this.x >= key*2.8 + this.width){
-                this.x -= this.moveSpeed;
-            }
-            else if (keyRIGHT.isDown && this.x <= game.config.width - key*2.8 - this.width) {
-                this.x += this.moveSpeed;
-            }
+        if(keyLEFT.isDown && this.x >= key*2.8 + this.width){
+            this.x -= this.moveSpeed;
         }
+        else if (keyRIGHT.isDown && this.x <= game.config.width - key*2.8 - this.width) {
+            this.x += this.moveSpeed;
+         }
     }
 }

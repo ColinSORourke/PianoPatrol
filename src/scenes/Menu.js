@@ -10,9 +10,10 @@ class Menu extends Phaser.Scene {
     }
     
     create() {
-        // Menu Config
+        
         this.add.image(0,0, 'background').setOrigin(0,0)
-
+        
+        // Menu Config
         let menuConfig = {
             fontFamily: 'Garamond',
             fontSize: '28px',
