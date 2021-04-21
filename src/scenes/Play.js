@@ -9,8 +9,10 @@ class Play extends Phaser.Scene {
         this.load.image('finger', './assets/finger.png');
         this.load.audio('theJoke', './assets/Megalovania.mp3');
         this.load.audio('initialNotes', './assets/InitialNotes.mp3');
+        this.load.audio('scale', './assets/Scale.mp3');
         this.load.image('him', './assets/Unknown.png');
         this.load.spritesheet('notesDestroy', './assets/DoubleNoteDestroy.png', {frameWidth: 64, frameHeight: 64});
+        
     }
 
     create() {
@@ -25,10 +27,21 @@ class Play extends Phaser.Scene {
         this.add.rectangle(0, game.config.height - key*3.25, game.config.width, (key*2) + key/3, 0x7A4419).setOrigin(0, 0);
         
 
+        
         this.keys = {};
+        this.keyPress = this.sound.add('scale');
 
         for (var i = 0; i<= 9; i++){
             this.keys["key" + i] = this.add.rectangle(key*2.8 + (key + (key/30))*i, game.config.height - (key*3 + key/12), key, key*2, 0xFFFFFF).setOrigin(0,0);
+            this.keyPress.addMarker({name: "key" + i, start: i, duration: 0.5, config: {
+                mute: false,
+                volume: 0.25,
+                rate: 1,
+                detune: 0,
+                seek: 0,
+                loop: false,
+                delay: 0
+            }})
         }
         for (var i = 0; i<= 8; i++){
             let extra = 0
@@ -52,6 +65,13 @@ class Play extends Phaser.Scene {
             },
             fixedWidth: 100
           }
+        
+        this.warnConfig = {
+            fontFamily: 'Courier',
+            fontSize: '20px',
+            align: 'center',
+            color: '#9DD1F1',
+        }
           
 
         this.myFinger = new Finger(this, game.config.width/2, game.config.height - (key*2), 'finger').setOrigin(0.5, 0);
@@ -99,6 +119,9 @@ class Play extends Phaser.Scene {
 
         this.scoreLeft = this.add.text(key, game.config.height - key*3, this.score, this.scoreConfig);
 
+        this.finaleText = this.add.text(game.config.width/2, game.config.height/2 + 64, "You have until the song ends, get as many points as you can!", this.warnConfig).setOrigin(0.5,0);
+        this.finaleText.alpha = 0;
+
         this.currLoop = false;
         this.queuedTransition = [];
 
@@ -111,10 +134,6 @@ class Play extends Phaser.Scene {
             loop: false,
             delay: 0
         };
-
-        this.time.delayedCall(5000, () => {
-            this.gameEnd();
-        });
     }
 
     update(time, delta) {
@@ -159,6 +178,7 @@ class Play extends Phaser.Scene {
                             myKey.setFillStyle(0xDDDDDD, 1);
                             myKey.y += 15;
                             this.myFinger.y -= 10;
+                            this.keyPress.play("key"+i);
                             this.time.delayedCall(250, () => {
                                 myKey.y = game.config.height - (key*3 + key/12);
                                 myKey.setFillStyle(0xFFFFFF, 1);
@@ -183,7 +203,6 @@ class Play extends Phaser.Scene {
 
             for (var i = 0; i <= this.fired.length; i++){
                 if (i == 0 && this.fired[i] == false){
-                    console.log("removed a bullet");
                     this.fired.shift();
                     i -= 1;
                     break;
@@ -256,7 +275,6 @@ class Play extends Phaser.Scene {
                 this.notes.play("notes" + this.score);
             }
         } else if (this.score == 10){
-            console.log("2nd segment");
             this.notes.addMarker({name: "notes" + this.score, start: 6, duration: 4.5, config: this.musicConfig});
 
             if (!this.notes.isPlaying){
@@ -264,14 +282,12 @@ class Play extends Phaser.Scene {
             }
             this.him.alpha = 0.02;
         } else if (this.score == 11){
-            console.log("3rd segment");
             this.notes.addMarker({name: "notes" + this.score, start: 11.2, duration: 3.8, config: this.musicConfig});
 
             if (!this.notes.isPlaying){
                 this.notes.play("notes" + this.score);
             }
         } else if (this.score == 12){
-            console.log("4th segment");
             this.notes.addMarker({name: "notes" + this.score, start: 16.5, duration: 4, config: this.musicConfig});
 
             this.notes.stop();
@@ -281,7 +297,6 @@ class Play extends Phaser.Scene {
             this.queuedTransition.push("Intro");
             this.music.addMarker({name: "loop", start: 16.696, duration: 16.65, config: this.musicConfig});
             this.currLoop = "loop";
-            console.log("start audio controller");
             audioController(this, this.music);
             this.him.alpha = 0.05;
         } else if (this.score == 25){
@@ -301,6 +316,7 @@ class Play extends Phaser.Scene {
             this.music.addMarker({name: "Finale", start: 100.174, duration: 58.446, config: this.musicConfig});
             this.queuedTransition.push("Finale");
             this.inFinale = true;
+            this.finaleText.alpha = 1;
             this.scoreInc = 2;
             this.him.alpha = 1;
         }
@@ -340,10 +356,7 @@ class Play extends Phaser.Scene {
  }
 
  function audioController(scene, music){
-    console.log(scene.queuedTransition);
-    console.log(scene.currLoop);
     if (scene.queuedTransition.length > 0){
-        console.log("play from queue");
         if ( scene.queuedTransition[0] == "Finale"){
             music.play(scene.queuedTransition.shift());
             music.once('complete', function(){ scene.gameEnd()});

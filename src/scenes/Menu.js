@@ -4,17 +4,19 @@ class Menu extends Phaser.Scene {
     }
 
     preload() {
+      this.load.image("background", "./assets/MenuBG.png");
+
+      this.load.audio("select_menu", "./assets/MenuSelect.mp3");
     }
     
     create() {
         // Menu Config
-        game.Seed = -1;
-    
+        this.add.image(0,0, 'background').setOrigin(0,0)
+
         let menuConfig = {
-            fontFamily: 'Courier',
+            fontFamily: 'Garamond',
             fontSize: '28px',
-            backgroundColor: '#F3B141',
-            color: '#843605',
+            color: '#FFFFF0',
             alighn: 'right',
             padding: {
                 top: 5,
@@ -23,11 +25,12 @@ class Menu extends Phaser.Scene {
             fixedWidth: 0
         }
 
-        // CREATE MENU... JESUS WEPT        
-        this.add.text(game.config.width/2, game.config.height/2 - key * 2, 'PIANO PATROL', menuConfig).setOrigin(0.5);
-        this.add.text(game.config.width/2, game.config.height/2, 'Use <--> arrows to move & (F) to fire', menuConfig).setOrigin(0.5);
-        menuConfig.backgroundColor = '#00FF00';
-        menuConfig.color = '#000';
+        // CREATE MENU... JESUS WEPT    
+        menuConfig.fontSize = "48px";    
+        this.add.text(game.config.width/2, game.config.height/2 - key * 4, 'PIANO PATROL', menuConfig).setOrigin(0.5);
+        menuConfig.fontSize = "28px";   
+        this.add.text(game.config.width/2, game.config.height/2 - key/2, 'Use <--> arrows to move & (F) to play', menuConfig).setOrigin(0.5);
+        menuConfig.backgroundColor = '#04471C';
         let startButton = this.add.text(game.config.width/2, game.config.height/2 + key * 2, 'Click here to start', menuConfig).setOrigin(0.5);
 
         // define keys
@@ -35,6 +38,9 @@ class Menu extends Phaser.Scene {
         keyRIGHT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
 
         startButton.setInteractive();
-        startButton.on('pointerdown', () => {this.scene.start('playScene')});
+        startButton.on('pointerdown', () => {
+          this.sound.play('select_menu');
+          this.scene.start('playScene');
+        });
     }
   }
